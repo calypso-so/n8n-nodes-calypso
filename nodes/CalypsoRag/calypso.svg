@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Calypso">
+	<rect width="200" height="200" fill="#000000" />
+	<rect x="82" y="25" width="44" height="44" rx="12" fill="#62d98f" />
+	<rect x="121" y="38" width="44" height="44" rx="12" fill="#a9e879" transform="rotate(43 143 60)" />
+	<rect x="125" y="110" width="44" height="44" rx="12" fill="#c5a2f3" transform="rotate(43 147 132)" />
+	<rect x="82" y="134" width="44" height="44" rx="12" fill="#8c6bf1" />
+	<rect x="42" y="111" width="44" height="44" rx="12" fill="#5c5df0" transform="rotate(43 64 133)" />
+	<rect x="33" y="76" width="44" height="44" rx="12" fill="#5a9df3" />
+	<rect x="45" y="40" width="44" height="44" rx="12" fill="#69d8d2" transform="rotate(43 67 62)" />
+	<circle cx="100" cy="100" r="34" fill="#000000" />
+</svg>

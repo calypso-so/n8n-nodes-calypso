@@ -1,0 +1,90 @@
+{
+	"name": "n8n-nodes-calypso",
+	"version": "1.0.0",
+	"description": "n8n community node for Calypso RAG - call grounded Calypso agents from workflow automations",
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n-nodes",
+		"calypso",
+		"calypso-rag",
+		"rag",
+		"retrieval-augmented-generation",
+		"grounded-ai",
+		"ai-agents",
+		"knowledge-base",
+		"openai-compatible",
+		"api-integration",
+		"workflow-automation",
+		"automation"
+	],
+	"license": "MIT",
+	"homepage": "https://www.calypso.so/",
+	"author": {
+		"name": "Calypso",
+		"email": "info@calypso.so",
+		"url": "https://www.calypso.so/"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/calypso-so/n8n-nodes-calypso.git"
+	},
+	"bugs": {
+		"url": "https://github.com/calypso-so/n8n-nodes-calypso/issues"
+	},
+	"engines": {
+		"node": ">=20.15",
+		"npm": ">=9.5.1"
+	},
+	"main": "dist/index.js",
+	"scripts": {
+		"build": "npx rimraf dist && tsc && gulp build:all",
+		"dev": "tsc --watch",
+		"package": "npm run build && npm pack",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"lint": "eslint . --ext .ts,.js",
+		"lintfix": "eslint . --ext .ts,.js --fix",
+		"scan": "npx -p node@22 -p @n8n/scan-community-package scan-community-package n8n-nodes-calypso",
+		"test": "echo \"No automated tests configured\"",
+		"validate": "npm run build && npm run lint && npm run format:check",
+		"prepublishOnly": "npm run validate"
+	},
+	"files": [
+		"dist/**/*.d.ts",
+		"dist/**/*.js",
+		"dist/**/*.js.map",
+		"dist/**/*.json",
+		"dist/**/*.svg",
+		"icons/**/*",
+		"README.md",
+		"LICENSE",
+		"CHANGELOG.md"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"nodes": [
+			"dist/nodes/CalypsoRag/CalypsoRag.node.js"
+		],
+		"credentials": [
+			"dist/credentials/CalypsoApi.credentials.js"
+		]
+	},
+	"devDependencies": {
+		"@types/express": "^4.17.13",
+		"@types/form-data": "^2.2.1",
+		"@types/node": "^18.0.0",
+		"@typescript-eslint/eslint-plugin": "^6.0.0",
+		"@typescript-eslint/parser": "^6.0.0",
+		"eslint": "^8.0.0",
+		"eslint-plugin-n8n-nodes-base": "^1.16.0",
+		"gulp": "^5.0.1",
+		"prettier": "^3.0.0",
+		"typescript": "^5.0.0"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
