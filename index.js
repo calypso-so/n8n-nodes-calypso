@@ -1,7 +1,7 @@
-const { CalypsoRag } = require('./nodes/CalypsoRag/CalypsoRag.node');
+const { Calypso } = require('./nodes/Calypso/Calypso.node');
 const { CalypsoApi } = require('./credentials/CalypsoApi.credentials');
 
 module.exports = {
-	nodeTypes: [new CalypsoRag()],
+	nodeTypes: [new Calypso()],
 	credentialTypes: [new CalypsoApi()],
 };

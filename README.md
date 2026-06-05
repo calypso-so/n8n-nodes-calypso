@@ -11,7 +11,7 @@ Send grounded, multimodal questions to your Calypso workspace directly from n8n.
 
 ## Quick Start
 
-1. Install the **Calypso RAG** community node
+1. Install the **Calypso** community node
 2. Add **Calypso API** credentials (your project API key)
 3. Drop the node into your workflow and start sending multimodal grounded queries
 
@@ -27,7 +27,9 @@ Send grounded, multimodal questions to your Calypso workspace directly from n8n.
 ## Features
 
 - **True Multimodal RAG**: Powered by Calypso’s Gemini File Search — handles text + visuals (PDFs, screenshots, charts, diagrams, images) natively.
-- **Easy Agent Calls**: Use the default `calypso-rag-agent` or named profiles (`calypso-rag-agent:support`).
+- **Easy Agent Calls**: Use the default `calypso-rag-agent` or pick a named profile loaded from your API key, such as `calypso-rag-agent:support`.
+- **Native File Uploads**: Upload one binary file or a batch of incoming binary files directly into a selected Calypso knowledge bucket.
+- **Authenticated Bucket Picker**: Upload operations load active bucket options from the connected Calypso project API key.
 - **Project-scoped Security**: Calypso project API keys keep workspace, buckets, and policies aligned.
 - **Rich Outputs**: Answer text + source annotations, metadata, and optional usage stats.
 - **n8n AI Agent Ready**: Use as a tool in n8n AI workflows.
@@ -39,7 +41,7 @@ Send grounded, multimodal questions to your Calypso workspace directly from n8n.
 
 - Go to **Settings → Community nodes**
 - Install package: `@calypsohq/n8n-nodes-calypso`
-- Or search for "Calypso RAG" / "Calypso Multimodal RAG" in the nodes panel.
+- Or search for "Calypso" / "Calypso Multimodal RAG" in the nodes panel.
 
 ### Self-hosted n8n
 
@@ -47,7 +49,7 @@ Send grounded, multimodal questions to your Calypso workspace directly from n8n.
 npm install @calypsohq/n8n-nodes-calypso
 ```
 
-Restart n8n, then search for **Calypso RAG**.
+Restart n8n, then search for **Calypso**.
 
 ## Credentials
 
@@ -61,11 +63,13 @@ Create a **Calypso API** credential:
 ### Operation
 
 - **Ask Agent** — Send grounded multimodal requests to Calypso.
+- **Upload File** — Upload one binary file from each incoming n8n item to a selected Calypso bucket.
+- **Upload Batch** — Upload all incoming binary files in one durable Calypso batch request.
 
 ### Model
 
 - Default: `calypso-rag-agent`
-- Named Profile: `support` or full `calypso-rag-agent:support`
+- Named Profile: choose a full model ID from the dropdown, such as `calypso-rag-agent:support`. The list is loaded from the Calypso profiles available to your project API key.
 
 ### Input
 
@@ -78,6 +82,14 @@ Your question or instruction. Calypso Multimodal RAG shines when querying across
 - "What does our policy PDF say about this setup error screenshot?"
 - "Summarize key changes from the latest report and supporting visuals"
 - "Recommend the right plan based on this customer screenshot and our pricing docs"
+
+### Uploads
+
+For **Upload File** and **Upload Batch**, choose **Bucket Name or ID** from the dynamic bucket dropdown. The list is loaded from the active buckets available to the connected Calypso project API key and shows bucket names with file counts.
+
+Set **Binary Property Name** to the n8n binary field that contains the file, usually `data`. Optional upload fields include tags, metadata, single-file title, single-file idempotency key, batch idempotency key, and batch dry-run validation.
+
+Upload responses confirm durable acceptance by Calypso. Newly uploaded files may still need indexing time before they are query-ready for agent answers.
 
 ### Additional Options
 
@@ -112,7 +124,8 @@ This creates a consistent knowledge layer across your tools (Claude, Cursor, n8n
 ## Best Practices
 
 - Test prompts in the Calypso Playground first.
-- Use named profiles for specific bucket or policy needs.
+- Use named profiles for specific bucket or policy needs. n8n only shows profiles your Calypso project API key can access.
+- Use **Upload Batch** when multiple incoming items should be accepted as one retryable Calypso batch.
 - Ensure new uploads are fully indexed before querying.
 - Rotate project API keys regularly from the Calypso dashboard.
 

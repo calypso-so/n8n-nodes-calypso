@@ -1,6 +1,6 @@
 {
 	"name": "@calypsohq/n8n-nodes-calypso",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "n8n community node for Calypso RAG - call grounded Calypso agents from workflow automations",
 	"keywords": [
 		"n8n-community-node-package",
@@ -63,7 +63,7 @@
 	"n8n": {
 		"n8nNodesApiVersion": 1,
 		"nodes": [
-			"dist/nodes/CalypsoRag/CalypsoRag.node.js"
+			"dist/nodes/Calypso/Calypso.node.js"
 		],
 		"credentials": [
 			"dist/credentials/CalypsoApi.credentials.js"
