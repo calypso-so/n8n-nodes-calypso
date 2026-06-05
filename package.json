@@ -1,6 +1,6 @@
 {
 	"name": "@calypsohq/n8n-nodes-calypso",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "n8n community node for Calypso RAG - call grounded Calypso agents from workflow automations",
 	"keywords": [
 		"n8n-community-node-package",

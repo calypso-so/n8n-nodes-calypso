@@ -90,7 +90,7 @@ function extractAnnotations(response: CalypsoResponse): IDataObject[] {
  */
 export class CalypsoRag implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Calypso RAG',
+		displayName: 'Calypso',
 		name: 'calypsoRag',
 		icon: 'file:calypso.svg',
 		group: ['input'],
@@ -99,7 +99,7 @@ export class CalypsoRag implements INodeType {
 			'={{$parameter["modelMode"] === "default" ? "calypso-rag-agent" : "calypso-rag-agent:" + $parameter["profileId"]}}',
 		description: 'Ask a grounded Calypso RAG agent',
 		defaults: {
-			name: 'Calypso RAG',
+			name: 'Calypso',
 		},
 		usableAsTool: true,
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-inputs-wrong-regular-node

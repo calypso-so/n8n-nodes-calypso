@@ -63,12 +63,8 @@ export class CalypsoApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl.replace(/\\/$/, "")}}',
-			url: '/responses',
-			method: 'POST',
-			body: {
-				model: 'calypso-rag-agent',
-				input: 'Test connection',
-			},
+			url: '/connection',
+			method: 'GET',
 		},
 	};
 }

@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Calypso">
-	<rect width="200" height="200" fill="#000000" />
-	<rect x="82" y="25" width="44" height="44" rx="12" fill="#62d98f" />
-	<rect x="121" y="38" width="44" height="44" rx="12" fill="#a9e879" transform="rotate(43 143 60)" />
-	<rect x="125" y="110" width="44" height="44" rx="12" fill="#c5a2f3" transform="rotate(43 147 132)" />
-	<rect x="82" y="134" width="44" height="44" rx="12" fill="#8c6bf1" />
-	<rect x="42" y="111" width="44" height="44" rx="12" fill="#5c5df0" transform="rotate(43 64 133)" />
-	<rect x="33" y="76" width="44" height="44" rx="12" fill="#5a9df3" />
-	<rect x="45" y="40" width="44" height="44" rx="12" fill="#69d8d2" transform="rotate(43 67 62)" />
-	<circle cx="100" cy="100" r="34" fill="#000000" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 571 571" fill="none" role="img" aria-label="Calypso">
+	<g transform="translate(21)" shape-rendering="geometricPrecision">
+		<rect x="0" y="205" width="162" height="162" rx="38" fill="#3D9CF2" />
+		<rect x="60" y="60" width="162" height="162" rx="38" fill="#4CE5DD" transform="rotate(45 141 141)" />
+		<rect x="204" y="0" width="162" height="162" rx="38" fill="#2AD888" />
+		<rect x="349" y="60" width="162" height="162" rx="38" fill="#A7E571" transform="rotate(45 430 141)" />
+		<rect x="349" y="349" width="162" height="162" rx="38" fill="#CEA9FF" transform="rotate(45 430 430)" />
+		<rect x="60" y="349" width="162" height="162" rx="38" fill="#6464F9" transform="rotate(45 141 430)" />
+		<rect x="204" y="409" width="162" height="162" rx="38" fill="#9B6EFF" />
+	</g>
 </svg>
