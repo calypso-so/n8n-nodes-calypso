@@ -4,7 +4,7 @@
 
 Send grounded, multimodal questions to your Calypso workspace directly from n8n. Leverage native Gemini File Search for PDFs, screenshots, charts, diagrams, images, and more. Keep retrieval policy, bucket scoping, and grounding rules inside Calypso while n8n handles orchestration and automation.
 
-[![npm version](https://img.shields.io/npm/v/n8n-nodes-calypso.svg)](https://www.npmjs.com/package/n8n-nodes-calypso)
+[![npm version](https://img.shields.io/npm/v/%40calypsohq%2Fn8n-nodes-calypso.svg)](https://www.npmjs.com/package/@calypsohq/n8n-nodes-calypso)
 [![GitHub stars](https://img.shields.io/github/stars/calypso-so/n8n-nodes-calypso?style=social)](https://github.com/calypso-so/n8n-nodes-calypso)
 [![License](https://img.shields.io/github/license/calypso-so/n8n-nodes-calypso)](LICENSE)
 [![Calypso Multimodal RAG](https://img.shields.io/badge/Calypso_Multimodal_RAG-Gemini-blue)](https://www.calypso.so)
@@ -38,13 +38,13 @@ Send grounded, multimodal questions to your Calypso workspace directly from n8n.
 ### n8n Cloud
 
 - Go to **Settings → Community nodes**
-- Install package: `n8n-nodes-calypso`
+- Install package: `@calypsohq/n8n-nodes-calypso`
 - Or search for "Calypso RAG" / "Calypso Multimodal RAG" in the nodes panel.
 
 ### Self-hosted n8n
 
 ```bash
-npm install n8n-nodes-calypso
+npm install @calypsohq/n8n-nodes-calypso
 ```
 
 Restart n8n, then search for **Calypso RAG**.
@@ -198,7 +198,7 @@ n8n-nodes-calypso
 Install the package in your n8n environment using your standard community-node workflow:
 
 ```bash
-npm install n8n-nodes-calypso
+npm install @calypsohq/n8n-nodes-calypso
 ```
 
 Then restart n8n and search for `Calypso RAG`.

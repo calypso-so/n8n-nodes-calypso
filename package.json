@@ -1,6 +1,6 @@
 {
-	"name": "n8n-nodes-calypso",
-	"version": "1.0.0",
+	"name": "@calypsohq/n8n-nodes-calypso",
+	"version": "1.0.1",
 	"description": "n8n community node for Calypso RAG - call grounded Calypso agents from workflow automations",
 	"keywords": [
 		"n8n-community-node-package",
@@ -44,7 +44,7 @@
 		"format:check": "prettier --check .",
 		"lint": "eslint . --ext .ts,.js",
 		"lintfix": "eslint . --ext .ts,.js --fix",
-		"scan": "npx -p node@22 -p @n8n/scan-community-package scan-community-package n8n-nodes-calypso",
+		"scan": "npx -p node@22 -p @n8n/scan-community-package scan-community-package @calypsohq/n8n-nodes-calypso",
 		"test": "echo \"No automated tests configured\"",
 		"validate": "npm run build && npm run lint && npm run format:check",
 		"prepublishOnly": "npm run validate"
