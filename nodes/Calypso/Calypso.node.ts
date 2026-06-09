@@ -10,13 +10,17 @@ import type {
 	JsonObject,
 } from 'n8n-workflow';
 import { NodeApiError, NodeConnectionType, NodeOperationError } from 'n8n-workflow';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import * as packageInfo from '../../package.json';
 
 const DEFAULT_MODEL = 'calypso-rag-agent';
 const MODEL_PREFIX = `${DEFAULT_MODEL}:`;
+const DEFAULT_MIME_TYPE = 'application/octet-stream';
 
 type Operation = 'askAgent' | 'uploadFile' | 'uploadBatch';
 type ModelMode = 'default' | 'namedProfile';
+type FileSource = 'binaryProperty' | 'filePath';
 
 type ResponseContentItem = {
 	text?: string;
@@ -101,6 +105,21 @@ type BatchUploadSessionItem = IDataObject & {
 type BatchUploadSessionResponse = IDataObject & {
 	batch_id?: string;
 	accepted?: BatchUploadSessionItem[];
+};
+
+const MIME_TYPES_BY_EXTENSION: Record<string, string> = {
+	'.csv': 'text/csv',
+	'.htm': 'text/html',
+	'.html': 'text/html',
+	'.jpeg': 'image/jpeg',
+	'.jpg': 'image/jpeg',
+	'.json': 'application/json',
+	'.md': 'text/markdown',
+	'.pdf': 'application/pdf',
+	'.png': 'image/png',
+	'.txt': 'text/plain',
+	'.webp': 'image/webp',
+	'.xml': 'application/xml',
 };
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -252,6 +271,16 @@ function safeClientFileId(fileName: string, itemIndex: number, usedIds: Set<stri
 	return candidate;
 }
 
+function inferMimeType(filePath: string, fallback?: string): string {
+	const explicit = `${fallback ?? ''}`.trim();
+
+	if (explicit) {
+		return explicit;
+	}
+
+	return MIME_TYPES_BY_EXTENSION[path.extname(filePath).toLowerCase()] ?? DEFAULT_MIME_TYPE;
+}
+
 async function getBinaryFilePayload(
 	executeFunctions: IExecuteFunctions,
 	itemIndex: number,
@@ -263,7 +292,87 @@ async function getBinaryFilePayload(
 	return {
 		buffer,
 		fileName: binaryData.fileName || `item-${itemIndex + 1}`,
-		mimeType: binaryData.mimeType || 'application/octet-stream',
+		mimeType: binaryData.mimeType || DEFAULT_MIME_TYPE,
+	};
+}
+
+async function getLocalFilePayload(
+	executeFunctions: IExecuteFunctions,
+	itemIndex: number,
+	filePath: string,
+	mimeType?: string,
+): Promise<BinaryFilePayload> {
+	const localFilePath = filePath.trim();
+
+	if (!localFilePath) {
+		throw new NodeOperationError(executeFunctions.getNode(), 'Local File Path is required', {
+			itemIndex,
+		});
+	}
+
+	try {
+		const buffer = await readFile(localFilePath);
+
+		return {
+			buffer,
+			fileName: path.basename(localFilePath),
+			mimeType: inferMimeType(localFilePath, mimeType),
+		};
+	} catch (error) {
+		throw new NodeOperationError(executeFunctions.getNode(), error as Error, {
+			description:
+				'The Local File Path must be readable by the n8n worker process. For n8n Cloud or remote workers, use a binary input item instead.',
+			itemIndex,
+		});
+	}
+}
+
+async function getUploadFilePayload(
+	executeFunctions: IExecuteFunctions,
+	itemIndex: number,
+): Promise<{ file: BinaryFilePayload; source: FileSource; sourceName: string }> {
+	const fileSource = executeFunctions.getNodeParameter(
+		'fileSource',
+		itemIndex,
+		'binaryProperty',
+	) as FileSource;
+
+	if (fileSource === 'filePath') {
+		const localFilePath = `${executeFunctions.getNodeParameter('localFilePath', itemIndex)}`.trim();
+		const localFileMimeType = `${executeFunctions.getNodeParameter(
+			'localFileMimeType',
+			itemIndex,
+			'',
+		)}`.trim();
+
+		return {
+			file: await getLocalFilePayload(
+				executeFunctions,
+				itemIndex,
+				localFilePath,
+				localFileMimeType,
+			),
+			source: fileSource,
+			sourceName: localFilePath,
+		};
+	}
+
+	const binaryPropertyName = `${executeFunctions.getNodeParameter(
+		'binaryPropertyName',
+		itemIndex,
+		'data',
+	)}`.trim();
+
+	if (!binaryPropertyName) {
+		throw new NodeOperationError(executeFunctions.getNode(), 'Binary Property Name is required', {
+			itemIndex,
+		});
+	}
+
+	return {
+		file: await getBinaryFilePayload(executeFunctions, itemIndex, binaryPropertyName),
+		source: 'binaryProperty',
+		sourceName: binaryPropertyName,
 	};
 }
 
@@ -341,11 +450,6 @@ async function executeUploadFile(
 	baseUrl: string,
 ): Promise<INodeExecutionData> {
 	const bucketId = `${executeFunctions.getNodeParameter('bucketId', itemIndex)}`.trim();
-	const binaryPropertyName = `${executeFunctions.getNodeParameter(
-		'binaryPropertyName',
-		itemIndex,
-		'data',
-	)}`.trim();
 	const additionalFields = executeFunctions.getNodeParameter(
 		'uploadAdditionalFields',
 		itemIndex,
@@ -358,13 +462,7 @@ async function executeUploadFile(
 		});
 	}
 
-	if (!binaryPropertyName) {
-		throw new NodeOperationError(executeFunctions.getNode(), 'Binary Property Name is required', {
-			itemIndex,
-		});
-	}
-
-	const file = await getBinaryFilePayload(executeFunctions, itemIndex, binaryPropertyName);
+	const { file, source, sourceName } = await getUploadFilePayload(executeFunctions, itemIndex);
 	const tags = parseTags(additionalFields.tags);
 	const body: IDataObject = {
 		filename: file.fileName,
@@ -460,7 +558,8 @@ async function executeUploadFile(
 				calypsoUpload: {
 					operation: 'uploadFile',
 					bucketId,
-					binaryPropertyName,
+					fileSource: source,
+					sourceName,
 					filename: file.fileName,
 					sessionId,
 				},
@@ -482,11 +581,6 @@ async function executeUploadBatch(
 	}
 
 	const bucketId = `${executeFunctions.getNodeParameter('bucketId', 0)}`.trim();
-	const binaryPropertyName = `${executeFunctions.getNodeParameter(
-		'binaryPropertyName',
-		0,
-		'data',
-	)}`.trim();
 	const additionalFields = executeFunctions.getNodeParameter(
 		'uploadAdditionalFields',
 		0,
@@ -496,10 +590,6 @@ async function executeUploadBatch(
 
 	if (!bucketId) {
 		throw new NodeOperationError(executeFunctions.getNode(), 'Bucket is required');
-	}
-
-	if (!binaryPropertyName) {
-		throw new NodeOperationError(executeFunctions.getNode(), 'Binary Property Name is required');
 	}
 
 	if (!batchIdempotencyKey) {
@@ -512,9 +602,10 @@ async function executeUploadBatch(
 	const manifestItems: IDataObject[] = [];
 	const sessionFiles: IDataObject[] = [];
 	const binaryFilesByClientId = new Map<string, BinaryFilePayload>();
+	const uploadSources: Array<{ item: number; source: FileSource; sourceName: string }> = [];
 
 	for (let i = 0; i < items.length; i++) {
-		const file = await getBinaryFilePayload(executeFunctions, i, binaryPropertyName);
+		const { file, source, sourceName } = await getUploadFilePayload(executeFunctions, i);
 		const clientFileId = safeClientFileId(file.fileName, i, usedClientFileIds);
 		const itemManifest: IDataObject = {
 			client_file_id: clientFileId,
@@ -538,6 +629,7 @@ async function executeUploadBatch(
 			size_bytes: file.buffer.length,
 		});
 		binaryFilesByClientId.set(clientFileId, file);
+		uploadSources.push({ item: i, source, sourceName });
 	}
 
 	const createSessionOptions = {
@@ -627,7 +719,7 @@ async function executeUploadBatch(
 				calypsoUpload: {
 					operation: 'uploadBatch',
 					bucketId,
-					binaryPropertyName,
+					fileSources: uploadSources,
 					inputItems: items.length,
 					batchId,
 				},
@@ -916,17 +1008,74 @@ export class Calypso implements INodeType {
 				required: true,
 			},
 			{
+				displayName: 'File Source',
+				name: 'fileSource',
+				type: 'options',
+				options: [
+					{
+						name: 'Binary Property',
+						value: 'binaryProperty',
+						description: 'Read file bytes from a binary property on each incoming n8n item',
+					},
+					{
+						name: 'Local File Path',
+						value: 'filePath',
+						description: 'Read file bytes from a path that is accessible to the n8n worker process',
+					},
+				],
+				displayOptions: {
+					show: {
+						operation: ['uploadFile', 'uploadBatch'],
+					},
+				},
+				default: 'binaryProperty',
+				description:
+					'Choose whether uploads read bytes from n8n binary data or from local files readable by this n8n worker',
+				required: true,
+			},
+			{
 				displayName: 'Binary Property Name',
 				name: 'binaryPropertyName',
 				type: 'string',
 				displayOptions: {
 					show: {
 						operation: ['uploadFile', 'uploadBatch'],
+						fileSource: ['binaryProperty'],
 					},
 				},
 				default: 'data',
 				description: 'Name of the binary property containing the file to upload',
 				required: true,
+			},
+			{
+				displayName: 'Local File Path',
+				name: 'localFilePath',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['uploadFile', 'uploadBatch'],
+						fileSource: ['filePath'],
+					},
+				},
+				default: '',
+				description:
+					'Path to a file readable by the n8n worker process. In batch uploads, use an expression that reads a path field from each item so every item can point to a different file.',
+				required: true,
+			},
+			{
+				displayName: 'Local File MIME Type',
+				name: 'localFileMimeType',
+				type: 'string',
+				displayOptions: {
+					show: {
+						operation: ['uploadFile', 'uploadBatch'],
+						fileSource: ['filePath'],
+					},
+				},
+				default: '',
+				placeholder: 'text/html',
+				description:
+					'Optional MIME type for local file path uploads. Leave blank to infer common types from the file extension or fall back to application/octet-stream.',
 			},
 			{
 				displayName: 'Upload Options',

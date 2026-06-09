@@ -87,7 +87,11 @@ Your question or instruction. Calypso Multimodal RAG shines when querying across
 
 For **Upload File** and **Upload Batch**, choose **Bucket Name or ID** from the dynamic bucket dropdown. The list is loaded from the active buckets available to the connected Calypso project API key and shows bucket names with file counts.
 
-Set **Binary Property Name** to the n8n binary field that contains the file, usually `data`. Optional upload fields include tags, metadata, single-file title, single-file idempotency key, and batch idempotency key.
+Set **File Source** to **Binary Property** when the file is already attached to the incoming n8n item, then set **Binary Property Name** to the binary field that contains the file, usually `data`.
+
+Set **File Source** to **Local File Path** when the n8n worker process can read the file directly from disk, for example in self-hosted n8n or a local desktop workflow. For batch uploads, use an expression such as `{{$json.filePath}}` so each input item can point to a different file. Local path uploads infer common MIME types from the extension, and **Local File MIME Type** can override that when needed.
+
+For n8n Cloud or remote workers that cannot access your local filesystem, use the binary-property flow instead of a local file path. Optional upload fields include tags, metadata, single-file title, single-file idempotency key, and batch idempotency key.
 
 Upload operations create a small JSON session, upload bytes directly to the returned storage URL, and finalize the session with Calypso. Upload responses confirm durable acceptance by Calypso. Newly uploaded files may still need indexing time before they are query-ready for agent answers.
 
