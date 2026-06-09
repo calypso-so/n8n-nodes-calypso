@@ -28,7 +28,7 @@ Send grounded, multimodal questions to your Calypso workspace directly from n8n.
 
 - **True Multimodal RAG**: Powered by Calypso’s Gemini File Search — handles text + visuals (PDFs, screenshots, charts, diagrams, images) natively.
 - **Easy Agent Calls**: Use the default `calypso-rag-agent` or pick a named profile loaded from your API key, such as `calypso-rag-agent:support`.
-- **Native File Uploads**: Upload one binary file or a batch of incoming binary files directly into a selected Calypso knowledge bucket.
+- **Native File Uploads**: Upload one binary file or a batch of incoming binary files into a selected Calypso knowledge bucket through Calypso upload sessions.
 - **Authenticated Bucket Picker**: Upload operations load active bucket options from the connected Calypso project API key.
 - **Project-scoped Security**: Calypso project API keys keep workspace, buckets, and policies aligned.
 - **Rich Outputs**: Answer text + source annotations, metadata, and optional usage stats.
@@ -63,8 +63,8 @@ Create a **Calypso API** credential:
 ### Operation
 
 - **Ask Agent** — Send grounded multimodal requests to Calypso.
-- **Upload File** — Upload one binary file from each incoming n8n item to a selected Calypso bucket.
-- **Upload Batch** — Upload all incoming binary files in one durable Calypso batch request.
+- **Upload File** — Create an upload session, send one binary file from each incoming n8n item directly to storage, and finalize it into a selected Calypso bucket.
+- **Upload Batch** — Create a durable batch upload session, upload all incoming binary files directly to storage, and finalize the batch.
 
 ### Model
 
@@ -87,9 +87,9 @@ Your question or instruction. Calypso Multimodal RAG shines when querying across
 
 For **Upload File** and **Upload Batch**, choose **Bucket Name or ID** from the dynamic bucket dropdown. The list is loaded from the active buckets available to the connected Calypso project API key and shows bucket names with file counts.
 
-Set **Binary Property Name** to the n8n binary field that contains the file, usually `data`. Optional upload fields include tags, metadata, single-file title, single-file idempotency key, batch idempotency key, and batch dry-run validation.
+Set **Binary Property Name** to the n8n binary field that contains the file, usually `data`. Optional upload fields include tags, metadata, single-file title, single-file idempotency key, and batch idempotency key.
 
-Upload responses confirm durable acceptance by Calypso. Newly uploaded files may still need indexing time before they are query-ready for agent answers.
+Upload operations create a small JSON session, upload bytes directly to the returned storage URL, and finalize the session with Calypso. Upload responses confirm durable acceptance by Calypso. Newly uploaded files may still need indexing time before they are query-ready for agent answers.
 
 ### Additional Options
 

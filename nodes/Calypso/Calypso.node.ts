@@ -79,13 +79,28 @@ type UploadAdditionalFields = {
 	metadata?: string;
 	idempotencyKey?: string;
 	batchIdempotencyKey?: string;
-	dryRun?: boolean;
 };
 
 type BinaryFilePayload = {
 	buffer: Buffer;
 	fileName: string;
 	mimeType: string;
+};
+
+type UploadSessionResponse = IDataObject & {
+	session_id?: string;
+	upload_url?: string;
+};
+
+type BatchUploadSessionItem = IDataObject & {
+	client_file_id?: string;
+	session_id?: string;
+	upload_url?: string;
+};
+
+type BatchUploadSessionResponse = IDataObject & {
+	batch_id?: string;
+	accepted?: BatchUploadSessionItem[];
 };
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -252,24 +267,72 @@ async function getBinaryFilePayload(
 	};
 }
 
-function buildFilePart(file: BinaryFilePayload): IDataObject {
-	return {
-		value: file.buffer,
-		options: {
-			filename: file.fileName,
-			contentType: file.mimeType,
-		},
-	};
-}
-
 function buildUploadMetadata(
 	additionalFields: UploadAdditionalFields,
 	executeFunctions: IExecuteFunctions,
 	itemIndex: number,
-): string | undefined {
-	const metadata = parseMetadata(additionalFields.metadata, executeFunctions, itemIndex);
+): IDataObject | undefined {
+	return parseMetadata(additionalFields.metadata, executeFunctions, itemIndex);
+}
 
-	return metadata ? JSON.stringify(metadata) : undefined;
+function getRequiredString(
+	value: unknown,
+	fieldName: string,
+	executeFunctions: IExecuteFunctions,
+	itemIndex?: number,
+): string {
+	const normalizedValue = `${value ?? ''}`.trim();
+
+	if (!normalizedValue) {
+		throw new NodeOperationError(
+			executeFunctions.getNode(),
+			`${fieldName} is missing from Calypso`,
+			{
+				itemIndex,
+			},
+		);
+	}
+
+	return normalizedValue;
+}
+
+function getFullObjectContentRange(
+	file: BinaryFilePayload,
+	executeFunctions: IExecuteFunctions,
+): string {
+	if (file.buffer.length === 0) {
+		throw new NodeOperationError(
+			executeFunctions.getNode(),
+			'Cannot upload an empty file through a Calypso upload session',
+		);
+	}
+
+	return `bytes 0-${file.buffer.length - 1}/${file.buffer.length}`;
+}
+
+async function uploadBytesToSessionTarget(
+	executeFunctions: IExecuteFunctions,
+	uploadUrl: string,
+	file: BinaryFilePayload,
+	itemIndex?: number,
+): Promise<void> {
+	try {
+		await executeFunctions.helpers.httpRequest({
+			url: uploadUrl,
+			method: 'PUT',
+			body: file.buffer,
+			json: false,
+			headers: {
+				'Content-Type': file.mimeType,
+				'Content-Length': `${file.buffer.length}`,
+				'Content-Range': getFullObjectContentRange(file, executeFunctions),
+			},
+		} as IHttpRequestOptions);
+	} catch (error) {
+		throw new NodeApiError(executeFunctions.getNode(), error as JsonObject, {
+			itemIndex,
+		});
+	}
 }
 
 async function executeUploadFile(
@@ -303,34 +366,76 @@ async function executeUploadFile(
 
 	const file = await getBinaryFilePayload(executeFunctions, itemIndex, binaryPropertyName);
 	const tags = parseTags(additionalFields.tags);
-	const formData: IDataObject = {
-		file: buildFilePart(file),
-		bucket_ids: bucketId,
+	const body: IDataObject = {
+		filename: file.fileName,
+		content_type: file.mimeType,
+		size_bytes: file.buffer.length,
+		bucket_ids: [bucketId],
 	};
 	const title = `${additionalFields.title ?? ''}`.trim();
 	const metadata = buildUploadMetadata(additionalFields, executeFunctions, itemIndex);
 	const idempotencyKey = `${additionalFields.idempotencyKey ?? ''}`.trim();
 
 	if (title) {
-		formData.title = title;
+		body.title = title;
 	}
 
 	if (tags.length > 0) {
-		formData.tags = JSON.stringify(tags);
+		body.tags = tags;
 	}
 
 	if (metadata) {
-		formData.metadata = metadata;
+		body.metadata = metadata;
 	}
 
-	const requestOptions = {
-		url: `${baseUrl}/knowledge/files`,
+	const createSessionOptions = {
+		url: `${baseUrl}/knowledge/files/upload-session`,
 		method: 'POST',
-		formData,
+		body,
 		json: true,
 		headers: {
+			'Content-Type': 'application/json',
 			'User-Agent': `${packageInfo.name}/${packageInfo.version}`,
 			...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+		},
+	} as IHttpRequestOptions;
+
+	let session: UploadSessionResponse;
+	try {
+		session = (await executeFunctions.helpers.httpRequestWithAuthentication.call(
+			executeFunctions,
+			'calypsoApi',
+			createSessionOptions,
+		)) as UploadSessionResponse;
+	} catch (error) {
+		throw new NodeApiError(executeFunctions.getNode(), error as JsonObject, {
+			itemIndex,
+		});
+	}
+
+	const sessionId = getRequiredString(
+		session.session_id,
+		'Upload session ID',
+		executeFunctions,
+		itemIndex,
+	);
+	const uploadUrl = getRequiredString(
+		session.upload_url,
+		'Upload URL',
+		executeFunctions,
+		itemIndex,
+	);
+
+	await uploadBytesToSessionTarget(executeFunctions, uploadUrl, file, itemIndex);
+
+	const finalizeOptions = {
+		url: `${baseUrl}/knowledge/files/upload-session/${encodeURIComponent(sessionId)}/finalize`,
+		method: 'POST',
+		body: {},
+		json: true,
+		headers: {
+			'Content-Type': 'application/json',
+			'User-Agent': `${packageInfo.name}/${packageInfo.version}`,
 		},
 	} as IHttpRequestOptions;
 
@@ -339,7 +444,7 @@ async function executeUploadFile(
 		response = (await executeFunctions.helpers.httpRequestWithAuthentication.call(
 			executeFunctions,
 			'calypsoApi',
-			requestOptions,
+			finalizeOptions,
 		)) as IDataObject;
 	} catch (error) {
 		throw new NodeApiError(executeFunctions.getNode(), error as JsonObject, {
@@ -357,6 +462,7 @@ async function executeUploadFile(
 					bucketId,
 					binaryPropertyName,
 					filename: file.fileName,
+					sessionId,
 				},
 			},
 		},
@@ -402,9 +508,10 @@ async function executeUploadBatch(
 
 	const tags = parseTags(additionalFields.tags);
 	const metadata = parseMetadata(additionalFields.metadata, executeFunctions);
-	const formData: IDataObject = {};
 	const usedClientFileIds = new Set<string>();
 	const manifestItems: IDataObject[] = [];
+	const sessionFiles: IDataObject[] = [];
+	const binaryFilesByClientId = new Map<string, BinaryFilePayload>();
 
 	for (let i = 0; i < items.length; i++) {
 		const file = await getBinaryFilePayload(executeFunctions, i, binaryPropertyName);
@@ -424,23 +531,79 @@ async function executeUploadBatch(
 		}
 
 		manifestItems.push(itemManifest);
-		formData[clientFileId] = buildFilePart(file);
+		sessionFiles.push({
+			client_file_id: clientFileId,
+			filename: file.fileName,
+			content_type: file.mimeType,
+			size_bytes: file.buffer.length,
+		});
+		binaryFilesByClientId.set(clientFileId, file);
 	}
 
-	formData.manifest = JSON.stringify({
-		version: 1,
-		batch_idempotency_key: batchIdempotencyKey,
-		bucket_ids: [bucketId],
-		items: manifestItems,
-	});
-
-	const dryRun = Boolean(additionalFields.dryRun);
-	const requestOptions = {
-		url: `${baseUrl}/knowledge/files:batch${dryRun ? '?dry_run=true' : ''}`,
+	const createSessionOptions = {
+		url: `${baseUrl}/knowledge/files:batch/upload-session`,
 		method: 'POST',
-		formData,
+		body: {
+			manifest: {
+				version: 1,
+				batch_idempotency_key: batchIdempotencyKey,
+				bucket_ids: [bucketId],
+				items: manifestItems,
+			},
+			files: sessionFiles,
+		},
 		json: true,
 		headers: {
+			'Content-Type': 'application/json',
+			'User-Agent': `${packageInfo.name}/${packageInfo.version}`,
+		},
+	} as IHttpRequestOptions;
+
+	let session: BatchUploadSessionResponse;
+	try {
+		session = (await executeFunctions.helpers.httpRequestWithAuthentication.call(
+			executeFunctions,
+			'calypsoApi',
+			createSessionOptions,
+		)) as BatchUploadSessionResponse;
+	} catch (error) {
+		throw new NodeApiError(executeFunctions.getNode(), error as JsonObject);
+	}
+
+	const batchId = getRequiredString(session.batch_id, 'Batch upload session ID', executeFunctions);
+
+	for (const acceptedItem of session.accepted ?? []) {
+		const clientFileId = getRequiredString(
+			acceptedItem.client_file_id,
+			'Accepted batch item client_file_id',
+			executeFunctions,
+		);
+		const uploadUrl = getRequiredString(
+			acceptedItem.upload_url,
+			`Upload URL for ${clientFileId}`,
+			executeFunctions,
+		);
+		const file = binaryFilesByClientId.get(clientFileId);
+
+		if (!file) {
+			throw new NodeOperationError(
+				executeFunctions.getNode(),
+				`Calypso returned an upload session for unknown batch item ${clientFileId}`,
+			);
+		}
+
+		await uploadBytesToSessionTarget(executeFunctions, uploadUrl, file);
+	}
+
+	const finalizeOptions = {
+		url: `${baseUrl}/knowledge/files:batch/upload-session/${encodeURIComponent(batchId)}/finalize`,
+		method: 'POST',
+		body: {
+			mode: 'finalize_uploaded',
+		},
+		json: true,
+		headers: {
+			'Content-Type': 'application/json',
 			'User-Agent': `${packageInfo.name}/${packageInfo.version}`,
 		},
 	} as IHttpRequestOptions;
@@ -450,7 +613,7 @@ async function executeUploadBatch(
 		response = (await executeFunctions.helpers.httpRequestWithAuthentication.call(
 			executeFunctions,
 			'calypsoApi',
-			requestOptions,
+			finalizeOptions,
 		)) as IDataObject;
 	} catch (error) {
 		throw new NodeApiError(executeFunctions.getNode(), error as JsonObject);
@@ -466,7 +629,7 @@ async function executeUploadBatch(
 					bucketId,
 					binaryPropertyName,
 					inputItems: items.length,
-					dryRun,
+					batchId,
 				},
 			},
 		},
@@ -614,13 +777,15 @@ export class Calypso implements INodeType {
 					{
 						name: 'Upload Batch',
 						value: 'uploadBatch',
-						description: 'Upload multiple binary files to a Calypso knowledge bucket',
+						description:
+							'Upload multiple binary files to a Calypso knowledge bucket through upload sessions',
 						action: 'Upload batch',
 					},
 					{
 						name: 'Upload File',
 						value: 'uploadFile',
-						description: 'Upload one binary file to a Calypso knowledge bucket',
+						description:
+							'Upload one binary file to a Calypso knowledge bucket through an upload session',
 						action: 'Upload file',
 					},
 				],
@@ -781,18 +946,6 @@ export class Calypso implements INodeType {
 						type: 'string',
 						default: '={{"calypso-batch-" + $now.toMillis()}}',
 						description: 'Stable key used by Calypso to make batch retries idempotent',
-						displayOptions: {
-							show: {
-								'/operation': ['uploadBatch'],
-							},
-						},
-					},
-					{
-						displayName: 'Dry Run',
-						name: 'dryRun',
-						type: 'boolean',
-						default: false,
-						description: 'Whether to validate the batch without writing files',
 						displayOptions: {
 							show: {
 								'/operation': ['uploadBatch'],
