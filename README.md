@@ -145,4 +145,4 @@ Pair this node with the **[Calypso Multimodal RAG MCP Server](https://github.com
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+MIT License. See the [LICENSE](LICENSE) file for details.
