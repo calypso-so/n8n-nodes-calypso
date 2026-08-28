@@ -10,7 +10,7 @@ import * as packageInfo from '../package.json';
 const DEFAULT_BASE_URL = 'https://api.calypso.so/v1';
 
 /**
- * Credential configuration for Calypso RAG project API keys.
+ * Credential configuration for Calypso project API keys.
  */
 export class CalypsoApi implements ICredentialType {
 	name = 'calypsoApi';
@@ -46,7 +46,7 @@ export class CalypsoApi implements ICredentialType {
 			required: true,
 			placeholder: DEFAULT_BASE_URL,
 			description:
-				'Calypso RAG OpenAI-compatible API base URL. Keep the default unless you use a dedicated environment.',
+				'Calypso OpenAI-compatible API base URL. Keep the default unless you use a dedicated environment.',
 		},
 	];
 
