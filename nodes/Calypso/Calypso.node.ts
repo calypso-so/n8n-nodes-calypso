@@ -14,8 +14,15 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as packageInfo from '../../package.json';
 
-const DEFAULT_MODEL = 'calypso-rag-agent';
-const MODEL_PREFIX = `${DEFAULT_MODEL}:`;
+// Model-id families. Deriving the parser from the default is what broke named
+// agents: once discovery started returning `calypso-agent:{id}`, a canonical id
+// no longer matched the legacy prefix and got prefixed a second time. Parse both
+// families explicitly instead.
+const CANONICAL_FAMILY = 'calypso-agent';
+const LEGACY_FAMILY = 'calypso-rag-agent';
+const AGENT_FAMILIES = [CANONICAL_FAMILY, LEGACY_FAMILY] as const;
+const DEFAULT_MODEL = CANONICAL_FAMILY;
+const MODEL_PREFIX = `${CANONICAL_FAMILY}:`;
 const DEFAULT_MIME_TYPE = 'application/octet-stream';
 
 type Operation = 'askAgent' | 'uploadFile' | 'uploadBatch';
@@ -765,22 +772,36 @@ function getProfileBucketSummary(descriptor: RagAgentModelDescriptor): string {
 	return `${bucketCount} ${bucketCount === 1 ? 'bucket' : 'buckets'}, ${formatBucketFileCount(fileCount)}`;
 }
 
-function resolveModel(modelMode: ModelMode, profileId: string): string {
+/** Is this already a complete model id rather than a bare agent id? */
+export function isAgentModelId(value: string): boolean {
+	return AGENT_FAMILIES.some((family) => value === family || value.startsWith(`${family}:`));
+}
+
+export function resolveModel(modelMode: ModelMode, profileId: string): string {
 	if (modelMode === 'default') {
 		return DEFAULT_MODEL;
 	}
 
 	const normalizedProfileId = profileId.trim();
 
-	if (normalizedProfileId.startsWith(MODEL_PREFIX)) {
+	// The named-agent dropdown supplies a full model id from the discovery
+	// response, so it must pass through untouched — prefixing it again yields
+	// `calypso-rag-agent:calypso-agent:{id}`, which the API rejects with a 500.
+	if (isAgentModelId(normalizedProfileId)) {
 		return normalizedProfileId;
 	}
 
 	return `${MODEL_PREFIX}${normalizedProfileId}`;
 }
 
-function getProfileSuffix(model: string): string {
-	return model.startsWith(MODEL_PREFIX) ? model.slice(MODEL_PREFIX.length).trim() : '';
+export function getProfileSuffix(model: string): string {
+	for (const family of AGENT_FAMILIES) {
+		const prefix = `${family}:`;
+		if (model.startsWith(prefix)) {
+			return model.slice(prefix.length).trim();
+		}
+	}
+	return '';
 }
 
 function extractResponseText(response: CalypsoResponse): string {
@@ -816,7 +837,7 @@ function extractAnnotations(response: CalypsoResponse): IDataObject[] {
 }
 
 /**
- * n8n node for calling Calypso RAG agents through the OpenAI-compatible Responses API.
+ * n8n node for calling Calypso agents through the OpenAI-compatible Responses API.
  */
 export class Calypso implements INodeType {
 	description: INodeTypeDescription = {
@@ -827,8 +848,10 @@ export class Calypso implements INodeType {
 		version: 1,
 		documentationUrl: 'https://docs.calypso.so/integrations/n8n',
 		subtitle:
-			'={{$parameter["modelMode"] === "default" ? "calypso-rag-agent" : String($parameter["profileId"]).startsWith("calypso-rag-agent:") ? $parameter["profileId"] : "calypso-rag-agent:" + $parameter["profileId"]}}',
-		description: 'Ask a grounded Calypso RAG agent',
+			// Mirrors resolveModel(): a profileId that is already a full model id in
+			// either family passes through, so the subtitle shows what is actually sent.
+			'={{$parameter["modelMode"] === "default" ? "calypso-agent" : /^calypso-(rag-)?agent(:|$)/.test(String($parameter["profileId"])) ? $parameter["profileId"] : "calypso-agent:" + $parameter["profileId"]}}',
+		description: 'Ask a grounded Calypso agent',
 		defaults: {
 			name: 'Calypso',
 		},
@@ -846,7 +869,7 @@ export class Calypso implements INodeType {
 		properties: [
 			{
 				displayName:
-					'Validate your Calypso RAG agent in Playground before automating it in n8n. The project API key determines the workspace, buckets, default policy, and named profiles available to this node.',
+					'Validate your Calypso agent in Playground before automating it in n8n. The project API key determines the workspace, buckets, default policy, and named profiles available to this node.',
 				name: 'setupNotice',
 				type: 'notice',
 				default: '',
@@ -863,7 +886,7 @@ export class Calypso implements INodeType {
 					{
 						name: 'Ask Agent',
 						value: 'askAgent',
-						description: 'Send a grounded request to a Calypso RAG agent',
+						description: 'Send a grounded request to a Calypso agent',
 						action: 'Ask agent',
 					},
 					{
@@ -891,7 +914,7 @@ export class Calypso implements INodeType {
 					{
 						name: 'Default Agent',
 						value: 'default',
-						description: 'Use calypso-rag-agent, the canonical grounded agent for this project',
+						description: 'Use calypso-agent, the canonical grounded agent for this project',
 					},
 					{
 						name: 'Named Profile',
@@ -900,7 +923,7 @@ export class Calypso implements INodeType {
 					},
 				],
 				default: 'default',
-				description: 'Choose the Calypso RAG model to call',
+				description: 'Choose the Calypso agent model to call',
 				displayOptions: {
 					show: {
 						operation: ['askAgent'],
@@ -954,7 +977,7 @@ export class Calypso implements INodeType {
 				},
 				default: '',
 				placeholder: 'Summarize the grounded knowledge available in this workspace.',
-				description: 'Question or instruction to send to the Calypso RAG agent',
+				description: 'Question or instruction to send to the Calypso agent',
 				required: true,
 				displayOptions: {
 					show: {
@@ -1301,17 +1324,17 @@ export class Calypso implements INodeType {
 				if (modelMode === 'namedProfile' && profileSuffix.length === 0) {
 					throw new NodeOperationError(
 						this.getNode(),
-						'Named Profile must include a profile ID after calypso-rag-agent:',
+						'Named Profile must include an agent ID after calypso-agent:',
 						{
 							itemIndex: i,
 						},
 					);
 				}
 
-				if (modelMode === 'namedProfile' && profileSuffix.includes(MODEL_PREFIX)) {
+				if (modelMode === 'namedProfile' && isAgentModelId(profileSuffix)) {
 					throw new NodeOperationError(
 						this.getNode(),
-						'Profile ID must not include calypso-rag-agent: more than once',
+						'Agent ID must not itself be a model id (no doubled calypso-agent: prefix)',
 						{
 							itemIndex: i,
 						},

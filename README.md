@@ -19,7 +19,7 @@ Send grounded, multimodal questions to your Calypso workspace directly from n8n.
 
 ```json
 {
-	"model": "calypso-rag-agent",
+	"model": "calypso-agent",
 	"input": "Explain this setup screenshot together with the attached policy PDF. What should the support rep do next?"
 }
 ```
@@ -27,7 +27,7 @@ Send grounded, multimodal questions to your Calypso workspace directly from n8n.
 ## Features
 
 - **True Multimodal RAG**: Powered by Calypso’s Gemini File Search — handles text + visuals (PDFs, screenshots, charts, diagrams, images) natively.
-- **Easy Agent Calls**: Use the default `calypso-rag-agent` or pick a named profile loaded from your API key, such as `calypso-rag-agent:support`.
+- **Easy Agent Calls**: Use the default `calypso-agent` or pick a named profile loaded from your API key, such as `calypso-agent:support`.
 - **Native File Uploads**: Upload one binary file or a batch of incoming binary files into a selected Calypso knowledge bucket through Calypso upload sessions.
 - **Authenticated Bucket Picker**: Upload operations load active bucket options from the connected Calypso project API key.
 - **Project-scoped Security**: Calypso project API keys keep workspace, buckets, and policies aligned.
@@ -68,8 +68,8 @@ Create a **Calypso API** credential:
 
 ### Model
 
-- Default: `calypso-rag-agent`
-- Named Profile: choose a full model ID from the dropdown, such as `calypso-rag-agent:support`. The list is loaded from the Calypso profiles available to your project API key.
+- Default: `calypso-agent`
+- Named Profile: choose a full model ID from the dropdown, such as `calypso-agent:support`. The list is loaded from the Calypso profiles available to your project API key.
 
 ### Input
 
