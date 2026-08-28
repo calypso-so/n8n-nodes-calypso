@@ -14,15 +14,12 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as packageInfo from '../../package.json';
 
-// Model-id families. Deriving the parser from the default is what broke named
-// agents: once discovery started returning `calypso-agent:{id}`, a canonical id
-// no longer matched the legacy prefix and got prefixed a second time. Parse both
-// families explicitly instead.
-const CANONICAL_FAMILY = 'calypso-agent';
-const LEGACY_FAMILY = 'calypso-rag-agent';
-const AGENT_FAMILIES = [CANONICAL_FAMILY, LEGACY_FAMILY] as const;
-const DEFAULT_MODEL = CANONICAL_FAMILY;
-const MODEL_PREFIX = `${CANONICAL_FAMILY}:`;
+// `calypso-agent` is the only model-id family. Discovery returns complete
+// `calypso-agent:{id}` values, so anything that parses a model id has to treat an
+// already-qualified id as final — see resolveModel.
+const AGENT_FAMILY = 'calypso-agent';
+const DEFAULT_MODEL = AGENT_FAMILY;
+const MODEL_PREFIX = `${AGENT_FAMILY}:`;
 const DEFAULT_MIME_TYPE = 'application/octet-stream';
 
 type Operation = 'askAgent' | 'uploadFile' | 'uploadBatch';
@@ -774,7 +771,7 @@ function getProfileBucketSummary(descriptor: RagAgentModelDescriptor): string {
 
 /** Is this already a complete model id rather than a bare agent id? */
 export function isAgentModelId(value: string): boolean {
-	return AGENT_FAMILIES.some((family) => value === family || value.startsWith(`${family}:`));
+	return value === AGENT_FAMILY || value.startsWith(MODEL_PREFIX);
 }
 
 export function resolveModel(modelMode: ModelMode, profileId: string): string {
@@ -786,7 +783,7 @@ export function resolveModel(modelMode: ModelMode, profileId: string): string {
 
 	// The named-agent dropdown supplies a full model id from the discovery
 	// response, so it must pass through untouched — prefixing it again yields
-	// `calypso-rag-agent:calypso-agent:{id}`, which the API rejects with a 500.
+	// `calypso-agent:calypso-agent:{id}`, which the API rejects with a 500.
 	if (isAgentModelId(normalizedProfileId)) {
 		return normalizedProfileId;
 	}
@@ -795,13 +792,7 @@ export function resolveModel(modelMode: ModelMode, profileId: string): string {
 }
 
 export function getProfileSuffix(model: string): string {
-	for (const family of AGENT_FAMILIES) {
-		const prefix = `${family}:`;
-		if (model.startsWith(prefix)) {
-			return model.slice(prefix.length).trim();
-		}
-	}
-	return '';
+	return model.startsWith(MODEL_PREFIX) ? model.slice(MODEL_PREFIX.length).trim() : '';
 }
 
 function extractResponseText(response: CalypsoResponse): string {
