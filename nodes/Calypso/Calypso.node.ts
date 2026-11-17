@@ -14,13 +14,14 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as packageInfo from '../../package.json';
 
-// `calypso-agent` is the model-id family the node emits. `elephant-agent`
-// is the incoming Elephant by Calypso family (accepted since 1.3.0; the API
-// advertises it from Step 2 of the rename, when this node starts emitting it).
-// Discovery returns complete `{family}:{id}` values, so anything that parses a
-// model id has to treat an already-qualified id as final — see resolveModel.
-const AGENT_FAMILY = 'calypso-agent';
-const ACCEPTED_AGENT_FAMILIES = [AGENT_FAMILY, 'elephant-agent'] as const;
+// `elephant-agent` is the model-id family the node emits (Elephant by
+// Calypso; the API advertises it since Step 2 of the rename, 2026-11-17).
+// `calypso-agent` was the family before it and stays accepted (the API keeps
+// resolving it), so a saved workflow keeps working. Discovery returns complete
+// `{family}:{id}` values, so anything that parses a model id has to treat an
+// already-qualified id as final — see resolveModel.
+const AGENT_FAMILY = 'elephant-agent';
+const ACCEPTED_AGENT_FAMILIES = [AGENT_FAMILY, 'calypso-agent'] as const;
 const DEFAULT_MODEL = AGENT_FAMILY;
 const MODEL_PREFIX = `${AGENT_FAMILY}:`;
 const DEFAULT_MIME_TYPE = 'application/octet-stream';
@@ -788,7 +789,7 @@ export function resolveModel(modelMode: ModelMode, profileId: string): string {
 
 	// The named-agent dropdown supplies a full model id from the discovery
 	// response, so it must pass through untouched — prefixing it again yields
-	// `calypso-agent:calypso-agent:{id}`, which the API rejects with a 500.
+	// `elephant-agent:elephant-agent:{id}`, which the API rejects with a 500.
 	if (isAgentModelId(normalizedProfileId)) {
 		return normalizedProfileId;
 	}
@@ -852,7 +853,7 @@ export class Calypso implements INodeType {
 		subtitle:
 			// Mirrors resolveModel(): a profileId that is already a full model id in
 			// either family passes through, so the subtitle shows what is actually sent.
-			'={{$parameter["modelMode"] === "default" ? "calypso-agent" : /^(calypso-agent|elephant-agent)(:|$)/.test(String($parameter["profileId"])) ? $parameter["profileId"] : "calypso-agent:" + $parameter["profileId"]}}',
+			'={{$parameter["modelMode"] === "default" ? "elephant-agent" : /^(elephant-agent|calypso-agent)(:|$)/.test(String($parameter["profileId"])) ? $parameter["profileId"] : "elephant-agent:" + $parameter["profileId"]}}',
 		description: 'Ask a grounded Calypso agent',
 		defaults: {
 			name: 'Calypso',
@@ -916,7 +917,7 @@ export class Calypso implements INodeType {
 					{
 						name: 'Default Agent',
 						value: 'default',
-						description: 'Use calypso-agent, the canonical grounded agent for this project',
+						description: 'Use elephant-agent, the canonical grounded agent for this project',
 					},
 					{
 						name: 'Named Profile',
@@ -1326,7 +1327,7 @@ export class Calypso implements INodeType {
 				if (modelMode === 'namedProfile' && profileSuffix.length === 0) {
 					throw new NodeOperationError(
 						this.getNode(),
-						'Named Profile must include an agent ID after calypso-agent:',
+						'Named Profile must include an agent ID after elephant-agent:',
 						{
 							itemIndex: i,
 						},
@@ -1336,7 +1337,7 @@ export class Calypso implements INodeType {
 				if (modelMode === 'namedProfile' && isAgentModelId(profileSuffix)) {
 					throw new NodeOperationError(
 						this.getNode(),
-						'Agent ID must not itself be a model id (no doubled calypso-agent: prefix)',
+						'Agent ID must not itself be a model id (no doubled elephant-agent: prefix)',
 						{
 							itemIndex: i,
 						},

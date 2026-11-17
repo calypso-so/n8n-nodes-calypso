@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.4.0
+
+### Changed
+
+- **The node emits `elephant-agent`.** The Calypso API advertises the `elephant-agent`
+  family since Step 2 of the Elephant rename (2026-11-17), so **Default Agent** now sends
+  `elephant-agent` and a bare profile id becomes `elephant-agent:{id}`. `calypso-agent` and
+  `calypso-agent:{id}` stay accepted by `isAgentModelId()`, `resolveModel()` and
+  `getProfileSuffix()` (the API keeps resolving them), so a saved workflow keeps working
+  without edits.
+
 ## 1.3.0
 
 ### Added

@@ -21,7 +21,7 @@ Ask a Calypso agent questions that span PDFs, screenshots, charts, and diagrams,
 
 ```json
 {
-	"model": "calypso-agent",
+	"model": "elephant-agent",
 	"input": "Explain this setup screenshot together with the attached policy PDF. What should the support rep do next?"
 }
 ```
@@ -29,7 +29,7 @@ Ask a Calypso agent questions that span PDFs, screenshots, charts, and diagrams,
 ## Features
 
 - **Multimodal retrieval**: text and visuals — PDFs, screenshots, charts, diagrams — in one query.
-- **Named agents**: use the default `calypso-agent`, or pick a named profile loaded from your API key.
+- **Named agents**: use the default `elephant-agent`, or pick a named profile loaded from your API key.
 - **Bucket scoping**: narrow a single request to specific buckets within a profile.
 - **File uploads**: send one binary file or a batch of incoming items into a knowledge bucket through Calypso upload sessions.
 - **Authenticated pickers**: bucket and profile dropdowns load from the connected project API key.
@@ -61,8 +61,8 @@ Send a grounded request to a Calypso agent.
 
 #### Model
 
-- **Default** — uses `calypso-agent`, the canonical grounded agent for the project.
-- **Named Profile** — choose a profile from the dropdown, which loads the profiles your API key can reach. The dropdown supplies a complete model ID such as `calypso-agent:support`; pass it through unchanged rather than hand-editing it.
+- **Default** — uses `elephant-agent`, the canonical grounded agent for the project.
+- **Named Profile** — choose a profile from the dropdown, which loads the profiles your API key can reach. The dropdown supplies a complete model ID such as `elephant-agent:support`; pass it through unchanged rather than hand-editing it.
 
 #### Agent Bucket Context
 
@@ -126,7 +126,7 @@ Every **Ask Agent** item returns:
 
 ```json
 {
-	"model": "calypso-agent:support",
+	"model": "elephant-agent:support",
 	"input": "What is our refund window for annual plans?",
 	"answer": "Annual plans can be refunded within 30 days of renewal...",
 	"sources": [
@@ -172,7 +172,7 @@ The project API key determines the workspace, buckets, default policy, and named
 ## Troubleshooting
 
 **`HTTP 500 — Unknown RAG profile` when using Named Profile**
-The model ID is malformed, almost always from hand-editing. Pass the dropdown value through unchanged — it is already a complete `calypso-agent:{id}`, so adding a prefix yields `calypso-agent:calypso-agent:{id}`, which the API rejects. Re-select the profile from the dropdown to repair it.
+The model ID is malformed, almost always from hand-editing. Pass the dropdown value through unchanged — it is already a complete `elephant-agent:{id}`, so adding a prefix yields `elephant-agent:elephant-agent:{id}`, which the API rejects. Re-select the profile from the dropdown to repair it.
 
 **A freshly uploaded file is not reflected in the answer**
 Upload responses confirm durable acceptance, not index readiness. Indexing runs after finalize. Add a **Wait** node, or poll until the file reports ready, before the Ask Agent step.
@@ -193,12 +193,13 @@ It appears only for **Ask Agent** with **Named Profile**, and it loads the bucke
 
 ## Version history
 
-| Version   | Notes                                                                                                                                                                             |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1.3.0** | Accepts the `elephant-agent` model family (Elephant by Calypso) alongside `calypso-agent`; the emitted default is unchanged until the API advertises the new family.              |
-| **1.2.0** | Removed the legacy `calypso-rag-agent` model family; `calypso-agent` is the only accepted family. README rewritten with Agent Bucket Context, Compatibility, and Troubleshooting. |
-| **1.1.0** | Fixed named-agent model IDs and adopted the canonical `calypso-agent` family. Added the model-id test suite.                                                                      |
-| **1.0.x** | Initial release: Ask Agent, Upload File, Upload Batch, upload sessions, local file paths.                                                                                         |
+| Version   | Notes                                                                                                                                                                                                          |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1.4.0** | Emits the `elephant-agent` model family (the API's canonical family since 2026-11-17): Default Agent sends `elephant-agent`, bare profile ids become `elephant-agent:{id}`; `calypso-agent` ids stay accepted. |
+| **1.3.0** | Accepts the `elephant-agent` model family (Elephant by Calypso) alongside `calypso-agent`; the emitted default is unchanged until the API advertises the new family.                                           |
+| **1.2.0** | Removed the legacy `calypso-rag-agent` model family; `calypso-agent` is the only accepted family. README rewritten with Agent Bucket Context, Compatibility, and Troubleshooting.                              |
+| **1.1.0** | Fixed named-agent model IDs and adopted the canonical `calypso-agent` family. Added the model-id test suite.                                                                                                   |
+| **1.0.x** | Initial release: Ask Agent, Upload File, Upload Batch, upload sessions, local file paths.                                                                                                                      |
 
 See [CHANGELOG.md](CHANGELOG.md) for detail.
 
