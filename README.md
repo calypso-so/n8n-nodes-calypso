@@ -195,7 +195,7 @@ It appears only for **Ask Agent** with **Named Profile**, and it loads the bucke
 
 | Version   | Notes                                                                                                                                                                             |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1.3.0** | Accepts the `calypso-elephant-agent` model family (Elephant by Calypso) alongside `calypso-agent`; the emitted default is unchanged until the API advertises the new family. |
+| **1.3.0** | Accepts the `calypso-elephant-agent` model family (Elephant by Calypso) alongside `calypso-agent`; the emitted default is unchanged until the API advertises the new family.      |
 | **1.2.0** | Removed the legacy `calypso-rag-agent` model family; `calypso-agent` is the only accepted family. README rewritten with Agent Bucket Context, Compatibility, and Troubleshooting. |
 | **1.1.0** | Fixed named-agent model IDs and adopted the canonical `calypso-agent` family. Added the model-id test suite.                                                                      |
 | **1.0.x** | Initial release: Ask Agent, Upload File, Upload Batch, upload sessions, local file paths.                                                                                         |

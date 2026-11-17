@@ -774,7 +774,9 @@ function getProfileBucketSummary(descriptor: RagAgentModelDescriptor): string {
 
 /** Is this already a complete model id, in any accepted family, rather than a bare agent id? */
 export function isAgentModelId(value: string): boolean {
-	return ACCEPTED_AGENT_FAMILIES.some((family) => value === family || value.startsWith(`${family}:`));
+	return ACCEPTED_AGENT_FAMILIES.some(
+		(family) => value === family || value.startsWith(`${family}:`),
+	);
 }
 
 export function resolveModel(modelMode: ModelMode, profileId: string): string {
