@@ -27,8 +27,13 @@ test('a bare agent id is prefixed with the canonical family', () => {
 	assert.equal(resolveModel('namedProfile', '  support  '), 'calypso-agent:support');
 });
 
-test('isAgentModelId recognizes the canonical family and rejects everything else', () => {
-	for (const id of ['calypso-agent', 'calypso-agent:support']) {
+test('isAgentModelId recognizes the canonical and Elephant families and rejects everything else', () => {
+	for (const id of [
+		'calypso-agent',
+		'calypso-agent:support',
+		'calypso-elephant-agent',
+		'calypso-elephant-agent:support',
+	]) {
 		assert.equal(isAgentModelId(id), true, id);
 	}
 	// `calypso-rag-agent` was the legacy family and is no longer recognized.
@@ -44,9 +49,19 @@ test('isAgentModelId recognizes the canonical family and rejects everything else
 	}
 });
 
-test('getProfileSuffix strips the canonical family prefix only', () => {
+test('a full Elephant-family id from the dropdown passes through untouched', () => {
+	assert.equal(
+		resolveModel('namedProfile', 'calypso-elephant-agent:spacex'),
+		'calypso-elephant-agent:spacex',
+	);
+	assert.equal(resolveModel('namedProfile', 'calypso-elephant-agent'), 'calypso-elephant-agent');
+});
+
+test('getProfileSuffix strips an accepted family prefix only', () => {
 	assert.equal(getProfileSuffix('calypso-agent:spacex'), 'spacex');
 	assert.equal(getProfileSuffix('calypso-agent'), '');
+	assert.equal(getProfileSuffix('calypso-elephant-agent:spacex'), 'spacex');
+	assert.equal(getProfileSuffix('calypso-elephant-agent'), '');
 	assert.equal(getProfileSuffix('calypso-rag-agent:support'), '');
 	assert.equal(getProfileSuffix('gpt-4o'), '');
 });

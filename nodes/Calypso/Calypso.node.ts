@@ -14,10 +14,13 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as packageInfo from '../../package.json';
 
-// `calypso-agent` is the only model-id family. Discovery returns complete
-// `calypso-agent:{id}` values, so anything that parses a model id has to treat an
-// already-qualified id as final — see resolveModel.
+// `calypso-agent` is the model-id family the node emits. `calypso-elephant-agent`
+// is the incoming Elephant by Calypso family (accepted since 1.3.0; the API
+// advertises it from Step 2 of the rename, when this node starts emitting it).
+// Discovery returns complete `{family}:{id}` values, so anything that parses a
+// model id has to treat an already-qualified id as final — see resolveModel.
 const AGENT_FAMILY = 'calypso-agent';
+const ACCEPTED_AGENT_FAMILIES = [AGENT_FAMILY, 'calypso-elephant-agent'] as const;
 const DEFAULT_MODEL = AGENT_FAMILY;
 const MODEL_PREFIX = `${AGENT_FAMILY}:`;
 const DEFAULT_MIME_TYPE = 'application/octet-stream';
@@ -769,9 +772,9 @@ function getProfileBucketSummary(descriptor: RagAgentModelDescriptor): string {
 	return `${bucketCount} ${bucketCount === 1 ? 'bucket' : 'buckets'}, ${formatBucketFileCount(fileCount)}`;
 }
 
-/** Is this already a complete model id rather than a bare agent id? */
+/** Is this already a complete model id, in any accepted family, rather than a bare agent id? */
 export function isAgentModelId(value: string): boolean {
-	return value === AGENT_FAMILY || value.startsWith(MODEL_PREFIX);
+	return ACCEPTED_AGENT_FAMILIES.some((family) => value === family || value.startsWith(`${family}:`));
 }
 
 export function resolveModel(modelMode: ModelMode, profileId: string): string {
@@ -792,7 +795,13 @@ export function resolveModel(modelMode: ModelMode, profileId: string): string {
 }
 
 export function getProfileSuffix(model: string): string {
-	return model.startsWith(MODEL_PREFIX) ? model.slice(MODEL_PREFIX.length).trim() : '';
+	for (const family of ACCEPTED_AGENT_FAMILIES) {
+		const prefix = `${family}:`;
+		if (model.startsWith(prefix)) {
+			return model.slice(prefix.length).trim();
+		}
+	}
+	return '';
 }
 
 function extractResponseText(response: CalypsoResponse): string {
@@ -841,7 +850,7 @@ export class Calypso implements INodeType {
 		subtitle:
 			// Mirrors resolveModel(): a profileId that is already a full model id in
 			// either family passes through, so the subtitle shows what is actually sent.
-			'={{$parameter["modelMode"] === "default" ? "calypso-agent" : /^calypso-(rag-)?agent(:|$)/.test(String($parameter["profileId"])) ? $parameter["profileId"] : "calypso-agent:" + $parameter["profileId"]}}',
+			'={{$parameter["modelMode"] === "default" ? "calypso-agent" : /^calypso-(elephant-)?agent(:|$)/.test(String($parameter["profileId"])) ? $parameter["profileId"] : "calypso-agent:" + $parameter["profileId"]}}',
 		description: 'Ask a grounded Calypso agent',
 		defaults: {
 			name: 'Calypso',
